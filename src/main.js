@@ -60,6 +60,7 @@ const App = {
   },
 
   _viewAllMarks(e) {
+    if (this.workouts.length == 0) return
     const bounds = new google.maps.LatLngBounds();
     // Iterar a través de todos los marcadores y ampliar los límites
     this.markers.forEach((m) => {
@@ -88,11 +89,9 @@ const App = {
 
       const markerToDelete = this.findMarkerByCoords(workout.coords);
       //console.log(markerToDelete);
-      console.log(this.markers.indexOf(markerToDelete));
 
       this.markers.splice(this.markers.indexOf(markerToDelete), 1);
 
-      console.log(this.markers);
       markerToDelete.setMap(null);
       this.updateCluester(this.markers, true);
       this._saveToLocalStorage();
@@ -102,11 +101,9 @@ const App = {
       this._editWorkout(e);
       return;
     }
-
+    
     this.map.panTo(workout.coords);
     const markerSelected = this.findMarkerByCoords(workout.coords);
-
-    this.map.setZoom(15);
     this.map.setCenter(workout.coords);
     this.infowindow.close();
     this.showInfoMarker(markerSelected, workout);
@@ -151,7 +148,8 @@ const App = {
 
   updateCluester(markersArray, reset = false) {
     if (reset) {
-      console.log(markersArray);
+
+
 
       this.markerCluster.clearMarkers();
       this.markerCluster.addMarkers(markersArray);
@@ -230,9 +228,16 @@ const App = {
   async _updateCoordsWorkout(ev) {
     const newLat = ev.latLng.lat();
     const newLng = ev.latLng.lng();
-    this.markerToEdit.setPosition(ev.latLng);
-    this.workoutToEdit.coords = { lat: newLat, lng: newLng };
-    await this.workoutToEdit.reverseGeocode();
+
+    const isValidLocation = await this.workoutToEdit.reverseGeocode(newLat, newLng);
+    if (isValidLocation) {
+      this.markerToEdit.setPosition(ev.latLng);
+      this.workoutToEdit.coords = { lat: newLat, lng: newLng };
+    }
+    else {
+      this.markerToEdit.setPosition(this.previousPositionMarker);
+    }
+
   },
   focusWorkout(workout) {
     containerWorkouts
@@ -245,7 +250,7 @@ const App = {
   },
   showInfoMarker(marker, workout) {
     this.map.panTo(workout.coords);
-    const contentString = `<div class="custom-infowindow ${workout.type}-popup">${workout.description} (${workout.getStringLocation()})</div>`;
+    const contentString = `<div class="custom-infowindow ${workout.type}-popup">${workout.getStringLocation()}</div>`;
     this.infowindow.setContent(contentString);
     this.infowindow.open(this.map, marker);
     this.focusWorkout(workout);
@@ -266,6 +271,7 @@ const App = {
     const duration = +form.duration.value;
     const type = inputType.value;
     let isValidForm = false;
+    let isValidLocation = false;
 
     // NEW WORKOUT
 
@@ -287,8 +293,8 @@ const App = {
         this._renderWorkoutList(this.workoutToEdit);
       } else {
         workout.initialize(disntance, duration, this.positionClicked, cadence);
-        await workout.reverseGeocode();
-        this.workouts.push(workout);
+        isValidLocation = await workout.reverseGeocode();
+        if (isValidLocation) this.workouts.push(workout);
       }
     }
 
@@ -313,14 +319,12 @@ const App = {
           this.positionClicked,
           elevation
         );
-        await workout.reverseGeocode();
-        console.log(workout);
-
-        this.workouts.push(workout);
+        isValidLocation = await workout.reverseGeocode();
+        if (isValidLocation) this.workouts.push(workout);
       }
     }
 
-    if (!this.isEdition) {
+    if (!this.isEdition && isValidLocation) {
       this.renderMarker(workout);
       this._renderWorkoutList(workout);
     }
@@ -458,7 +462,8 @@ const App = {
     this.infowindow = new InfoWindow({ maxWidth: 250, minWidth: 100 });
     this.map = new Map(document.getElementById("map"), {
       zoom: 8,
-      maxZoom: 8,
+      maxZoom: 10,
+      minZoom: 3,
       center: { lat, lng },
       disableDefaultUI: true,
       zoomControl: true,
@@ -527,24 +532,29 @@ const workoutProto = {
       } ${this.date.getDate()}`;
   },
 
-  async reverseGeocode() {
-    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${this.coords.lat},${this.coords.lng}&key=${process.env.GOOGLE_MAPS_API_KEY}&result_type=country|administrative_area_level_1`);
-    const data = await res.json();
-    console.log(data);
+  async reverseGeocode(lat = this.coords.lat, lng = this.coords.lng) {
+    try {
+      const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.GOOGLE_MAPS_API_KEY}&result_type=country|administrative_area_level_1|administrative_area_level_2|locality|sublocality`);
+      const data = await res.json();
+      let fullLocation = data.plus_code.compound_code;
+      if (!fullLocation) throw new Error("We couldn't find a valid location")
+      const [town, province, country] = fullLocation.split(',');
+      this.location = {
+        country,
+        province,
+        town
+      }
 
-    const countryName = data.results[1].formatted_address;
-    const countryProvince = data.results[0].formatted_address;
-
-    this.country = countryName;
-    this.province = countryProvince;
-    this.location = {
-      country: countryName,
-      province: countryProvince,
+      return true
+    } catch (e) {
+      console.log(e.message);
+      return false
+      // TODO: notify error
     }
   },
 
   getStringLocation() {
-    return `${this.location.province || this.location.country || "Unknown"}`;
+    return `${this.location.town.split(' ').slice(1).join(' ')},${this.location.province},${this.location.country}`
   }
 };
 

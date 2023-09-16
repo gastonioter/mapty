@@ -1,7 +1,7 @@
 # Mapty: Map your Workouts
 
 ## Mark yours running/cycling workouts on a map
-### Keep a trak of all your workouts around the world
+### Keep a trak of all your workouts around the world. The software is designed to keep track of the cities where you have workoued. In the future you will be able to draw routes between a set of cities.
 
 ## Check it out
 
