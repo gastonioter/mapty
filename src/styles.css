@@ -29,10 +29,8 @@ body {
   line-height: 1.6;
   height: 100vh;
   overscroll-behavior-y: none;
-
   background-color: #fff;
   padding: 2.5rem;
-
   display: flex;
 }
 
@@ -44,7 +42,7 @@ a:visited {
 
 /* SIDEBAR */
 .sidebar {
-  flex-basis: 50rem;
+  flex-basis: 30%;
   background-color: var(--color-dark--1);
   padding: 3rem 5rem 4rem 5rem;
   display: flex;
@@ -87,9 +85,11 @@ a:visited {
 .workout.selected {
   transform: translateX(20px);
 }
+
 .workout--running {
   border-left: 5px solid var(--color-brand--2);
 }
+
 .workout--cycling {
   border-left: 5px solid var(--color-brand--1);
 }
@@ -103,14 +103,17 @@ a:visited {
 .material-symbols-outlined {
   font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24;
 }
+
 .actions__delete {
   color: #e96565;
   font-size: 2rem;
 }
+
 .actions__edit {
   color: #ffb545;
   font-size: 2rem;
 }
+
 .workout__actions {
   display: flex;
   margin-right: 10px;
@@ -219,6 +222,7 @@ a:visited {
   letter-spacing: 1px;
   text-align: center;
 }
+
 .copyright {
   margin-top: auto;
   font-size: 1.3rem;
@@ -257,6 +261,7 @@ a:visited {
 
   font-size: 16px;
 }
+
 .control {
   background-color: #fff;
   border: 2px solid #fff;
