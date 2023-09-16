@@ -22,3 +22,5 @@ npm run start
 ```
 
 Open [http://localhost:1234](http://localhost:1234) to see it in action.
+
+![Mapty](./assets/screenapp.png)

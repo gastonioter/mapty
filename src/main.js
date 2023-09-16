@@ -243,7 +243,7 @@ const App = {
   },
   showInfoMarker(marker, workout) {
     this.map.panTo(workout.coords);
-    const contentString = `<div class="custom-infowindow ${workout.type}-popup">${workout.description}</div>`;
+    const contentString = `<div class="custom-infowindow ${workout.type}-popup">${workout.description} (${workout.getStringLocation()})</div>`;
     this.infowindow.setContent(contentString);
     this.infowindow.open(this.map, marker);
     this.focusWorkout(workout);
@@ -252,7 +252,7 @@ const App = {
     form.classList.add("hidden");
   },
 
-  _newWorkout(e) {
+  async _newWorkout(e) {
     e.preventDefault();
     // helper functions
     const validInputs = (...inputs) =>
@@ -285,6 +285,7 @@ const App = {
         this._renderWorkoutList(this.workoutToEdit);
       } else {
         workout.initialize(disntance, duration, this.positionClicked, cadence);
+        await workout.reverseGeocode();
         this.workouts.push(workout);
       }
     }
@@ -310,6 +311,9 @@ const App = {
           this.positionClicked,
           elevation
         );
+        await workout.reverseGeocode();
+        console.log(workout);
+
         this.workouts.push(workout);
       }
     }
@@ -331,18 +335,16 @@ const App = {
   },
 
   _renderWorkoutList(workout) {
-    let html = `<li class="workout workout--${workout.type}" data-id="${
-      workout.id
-    }">
+    let html = `<li class="workout workout--${workout.type}" data-id="${workout.id
+      }">
           <h2 class="workout__title">${workout.description}</h2>
            <div class="workout__actions">
             <span class="material-symbols-outlined actions__delete"> delete </span>
             <span class="material-symbols-outlined actions__edit"> edit </span>
           </div>
           <div class="workout__details">
-            <span class="workout__icon">${
-              workout.type == "running" ? "🏃‍♂️" : "🚴‍♀️"
-            }</span>
+            <span class="workout__icon">${workout.type == "running" ? "🏃‍♂️" : "🚴‍♀️"
+      }</span>
             <span class="workout__value">${workout.distance}</span>
             <span class="workout__unit">km</span>
           </div>
@@ -509,15 +511,36 @@ const workoutProto = {
     this.distance = distance; // km
     this.duration = duration; // mins
     this.coords = coords;
+
   },
+
   get description() {
     // prettier-ignore
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-    return `${this.type.at(0).toUpperCase()}${this.type.slice(1)} on ${
-      months[this.date.getMonth()]
-    } ${this.date.getDate()}`;
+    return `${this.type.at(0).toUpperCase()}${this.type.slice(1)} on ${months[this.date.getMonth()]
+      } ${this.date.getDate()}`;
   },
+
+  async reverseGeocode() {
+    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${this.coords.lat},${this.coords.lng}&key=${process.env.GOOGLE_MAPS_API_KEY}&result_type=country|administrative_area_level_1`);
+    const data = await res.json();
+    console.log(data);
+
+    const countryName = data.results[1].formatted_address;
+    const countryProvince = data.results[0].formatted_address;
+
+    this.country = countryName;
+    this.province = countryProvince;
+    this.location = {
+      country: countryName,
+      province: countryProvince,
+    }
+  },
+
+  getStringLocation() {
+    return `${this.location.province || this.location.country || "Unknown"}`;
+  }
 };
 
 const cyclingProto = {
