@@ -1,12 +1,13 @@
 import "dotenv/config";
 
+import "bootstrap-icons/font/bootstrap-icons.css";
 
 import { Loader } from "google-maps";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 const loader = new Loader(process.env.GOOGLE_MAPS_API_KEY);
 
 
-let form = document.querySelector(".form");
+const form = document.querySelector(".form");
 const containerWorkouts = document.querySelector(".workouts");
 const inputType = document.querySelector(".form__input--type");
 const viewAllMarksBtn = document.querySelector(".control.showAll");
@@ -226,11 +227,12 @@ const App = {
     this.updateCluester([marker]);
   },
 
-  _updateCoordsWorkout(ev) {
+  async _updateCoordsWorkout(ev) {
     const newLat = ev.latLng.lat();
     const newLng = ev.latLng.lng();
     this.markerToEdit.setPosition(ev.latLng);
     this.workoutToEdit.coords = { lat: newLat, lng: newLng };
+    await this.workoutToEdit.reverseGeocode();
   },
   focusWorkout(workout) {
     containerWorkouts
@@ -339,8 +341,8 @@ const App = {
       }">
           <h2 class="workout__title">${workout.description}</h2>
            <div class="workout__actions">
-            <span class="material-symbols-outlined actions__delete"> delete </span>
-            <span class="material-symbols-outlined actions__edit"> edit </span>
+           <i class="bi bi-pencil actions__edit"></i>
+           <i class="bi bi-x-circle actions__delete"></i>
           </div>
           <div class="workout__details">
             <span class="workout__icon">${workout.type == "running" ? "🏃‍♂️" : "🚴‍♀️"
@@ -393,7 +395,7 @@ const App = {
   },
   _showForm(e) {
     noWorkoutsP.classList.add("hidden");
-
+    this.infowindow?.close()
     this.marker && this.marker.setMap(null);
     const { lat, lng } = e.latLng;
 
@@ -455,7 +457,8 @@ const App = {
     const { Map, InfoWindow } = google.maps;
     this.infowindow = new InfoWindow({ maxWidth: 250, minWidth: 100 });
     this.map = new Map(document.getElementById("map"), {
-      zoom: 16,
+      zoom: 8,
+      maxZoom: 8,
       center: { lat, lng },
       disableDefaultUI: true,
       zoomControl: true,
@@ -488,6 +491,8 @@ const App = {
     this.workouts.forEach((w) => {
       this.renderMarker(w);
     });
+
+    if (this.workouts.length > 0) this._viewAllMarks();
 
     this.map.addListener("click", this._showForm.bind(this));
     this.customUI();

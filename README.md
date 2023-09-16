@@ -1,6 +1,7 @@
-# Mapty: app for yours Workouts
+# Mapty: Map your Workouts
 
 ## Mark yours running/cycling workouts on a map
+### Keep a trak of all your workouts around the world
 
 ## Check it out
 
@@ -9,7 +10,9 @@ Open [https://mapty01.netlify.app/](https://mapty01.netlify.app/) to run the app
 ## Techologies
 
 - Google Maps API
-- Modern JavaScript
+- Reverse Geocoding API
+- Marker Cluesterer API
+- JavaScript (Delegation design)
 - Parcel as bundler
 
 ## Run in development mode

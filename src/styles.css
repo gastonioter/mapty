@@ -9,6 +9,8 @@
   --color-light--3: rgb(214, 222, 224);
 }
 
+
+
 * {
   margin: 0;
   padding: 0;
@@ -103,15 +105,17 @@ a:visited {
 }
 .actions__delete {
   color: #e96565;
+  font-size: 2rem;
 }
 .actions__edit {
   color: #ffb545;
+  font-size: 2rem;
 }
 .workout__actions {
   display: flex;
   margin-right: 10px;
   grid-column: 4/4;
-  gap: 5px;
+  gap: 2rem;
 }
 
 .workout__title {
