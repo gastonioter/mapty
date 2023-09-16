@@ -1,4 +1,7 @@
 import "dotenv/config";
+// TODO: inputs validations
+// TODO: error notifications
+// TODO: filter workouts by ... (distance, duration, date, distance from current location)
 
 import "bootstrap-icons/font/bootstrap-icons.css";
 
@@ -101,7 +104,7 @@ const App = {
       this._editWorkout(e);
       return;
     }
-    
+
     this.map.panTo(workout.coords);
     const markerSelected = this.findMarkerByCoords(workout.coords);
     this.map.setCenter(workout.coords);
@@ -554,7 +557,7 @@ const workoutProto = {
   },
 
   getStringLocation() {
-    return `${this.location.town.split(' ').slice(1).join(' ')},${this.location.province},${this.location.country}`
+    return `${this.location.town.split(' ').slice(1).join(' ')},${this.location.province || ''}${this.location.country ? ', '+this.location.country : ''}`
   }
 };
 
