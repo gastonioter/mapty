@@ -1,7 +1,8 @@
 import "dotenv/config";
 // TODO: inputs validations
 // TODO: filter workouts by ... (distance, duration, date, distance from current location)
-
+// TODO: route planning
+// TODO: route num information
 import "bootstrap-icons/font/bootstrap-icons.css";
 
 import { Loader } from "google-maps";
@@ -122,6 +123,7 @@ const App = {
 
       return;
     } else if (e.target.classList.contains("actions__edit")) {
+      workoutEl.classList.add("selected");
       this._editWorkout(e);
       return;
     }
@@ -185,11 +187,12 @@ const App = {
   },
 
   _cancelEditionOp() {
-    this.markerToEdit.setAnimation(null);
-    this.markerToEdit.setDraggable(false);
-    this.markerToEdit.setPosition(this.previousPositionMarker);
+    this.markerToEdit?.setAnimation(null);
+    this.markerToEdit?.setDraggable(false);
+    this.markerToEdit?.setPosition(this.previousPositionMarker);
     this.markerToEdit = null;
     this.workoutToEdit = null;
+    this.isEdition = false
   },
 
 
@@ -225,6 +228,16 @@ const App = {
   _toggleElevationField() {
     form.elevation.closest(".form__row").classList.toggle("form__row--hidden");
     form.cadence.closest(".form__row").classList.toggle("form__row--hidden");
+  },
+
+  _showElevationField() {
+    form.elevation.closest(".form__row").classList.remove("form__row--hidden");
+    form.cadence.closest(".form__row").classList.add("form__row--hidden");
+  },
+
+  _showCadenceField() {
+    form.elevation.closest(".form__row").classList.add("form__row--hidden");
+    form.cadence.closest(".form__row").classList.remove("form__row--hidden");
   },
 
   renderMarker(workout) {
@@ -290,29 +303,20 @@ const App = {
 
   async _newWorkout(e) {
     e.preventDefault();
-    // helper functions
-    const validInputs = (...inputs) =>
-      inputs.every((inp) => Number.isFinite(inp));
-    const allPositive = (...inputs) => inputs.every((inp) => inp > 0);
 
-    // Get the date from the form.
+    const allNumbers = (...inputs) => inputs.every((inp) => Number.isFinite(inp));
+    const allPositive = (...inputs) => inputs.every((inp) => inp > 0);
+    form.type.value = 'running'
     const disntance = +form.distance.value;
     const duration = +form.duration.value;
     const type = inputType.value;
     let isValidForm = false;
-
-
-    // NEW WORKOUT
-
     let workout = {};
 
     if (type === "running") {
-      // Check if data is valid.
       const cadence = +form.cadence.value;
 
-      isValidForm =
-        validInputs(disntance, duration, cadence) &&
-        allPositive(disntance, duration, cadence);
+      isValidForm = allNumbers(disntance, duration, cadence) && allPositive(disntance, duration, cadence);
       if (!isValidForm) return alert("Invalid Inputs!");
       Object.setPrototypeOf(workout, runningProto);
       if (this.isEdition) {
@@ -329,13 +333,13 @@ const App = {
     if (type === "cycling") {
 
       const elevation = +form.elevation.value;
-      isValidForm =
-        validInputs(disntance, duration, elevation) &&
-        allPositive(disntance, duration);
+      console.log(disntance, duration, elevation);
+
+      isValidForm = allNumbers(disntance, duration, elevation) && allPositive(disntance, duration, elevation);
       if (!isValidForm) return alert("Invalid Inputs!");
 
       if (this.isEdition) {
-        this.workoutToEdit.cadence = cadence;
+        this.elevation = elevation;
         this.workoutToEdit.distance = disntance;
         this.workoutToEdit.duration = duration;
         this._renderWorkoutList(this.workoutToEdit);
@@ -358,12 +362,9 @@ const App = {
 
       await workout.reverseGeocode();
       this.workouts.push(workout);
-    }
-
-    if (this.isEdition) {
-      this.markerToEdit.setAnimation(null);
-      this.markerToEdit.setDraggable(false);
-      this.isEdition = false;
+    } else {
+      this.isEdition
+      this._cancelEditionOp();
     }
 
     form.reset();
@@ -455,6 +456,7 @@ const App = {
   },
 
   _editWorkout(e) {
+
     if (!e.target.closest(".workout")) return;
     if (this.isEdition) {
       this._cancelEditionOp();
@@ -464,22 +466,24 @@ const App = {
     const workout = this.workouts.find((w) => w.id == workoutEl.dataset.id);
     this.workoutToEdit = workout;
 
-    function autocompleteValues() {
-      const { distance, duration } = workout;
-      form.distance.value = distance;
-      form.duration.value = duration;
-      if (workout.type == "running") {
-        const cadence = workout.cadence;
-        form.cadence.value = cadence;
-      }
 
-      if (workout.type == "cycling") {
-        const elevationGain = workout.elevationGain;
-        form.elevationGain.value = elevationGain;
-      }
+    const { distance, duration } = workout;
+    form.distance.value = distance;
+    form.duration.value = duration;
+    if (workout.type == "running") {
+      const cadence = workout.cadence;
+      form.cadence.value = cadence;
+      form.type.value = "running";
+      this._showCadenceField();
     }
 
-    autocompleteValues();
+    if (workout.type == "cycling") {
+      const elevationGain = workout.elevationGain;
+      form.elevation.value = elevationGain;
+      form.type.value = "cycling";
+      this._showElevationField();
+    }
+
 
     this.markerToEdit = this.findMarkerByCoords(workout.coords);
     this.markerToEdit.setAnimation(google.maps.Animation.BOUNCE);

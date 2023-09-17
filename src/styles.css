@@ -42,7 +42,7 @@ a:visited {
 
 /* SIDEBAR */
 .sidebar {
-  flex-basis: 35%;
+  flex-basis: 36%;
   background-color: var(--color-dark--1);
   padding: 3rem 5rem 4rem 5rem;
   display: flex;
@@ -290,7 +290,7 @@ a:visited {
   align-items: center;
   justify-content: center;
   background: hsla(0, 4%, 11%, 0.8);
-  transition: opacity 0.5s;
+  transition: opacity 0.3s;
 }
 
 .alert-outer.hidden {
