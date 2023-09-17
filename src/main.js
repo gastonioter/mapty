@@ -1,6 +1,5 @@
 import "dotenv/config";
 // TODO: inputs validations
-// TODO: error notifications
 // TODO: filter workouts by ... (distance, duration, date, distance from current location)
 
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -185,6 +184,15 @@ const App = {
     return;
   },
 
+  _cancelEditionOp() {
+    this.markerToEdit.setAnimation(null);
+    this.markerToEdit.setDraggable(false);
+    this.markerToEdit.setPosition(this.previousPositionMarker);
+    this.markerToEdit = null;
+    this.workoutToEdit = null;
+  },
+
+
   _cancelWorkout(e) {
     if (e.key != "Escape") return;
 
@@ -192,11 +200,7 @@ const App = {
     this.marker?.setMap(null);
     form.classList.add("hidden");
     if (this.isEdition) {
-      this.markerToEdit?.setAnimation(null);
-      this.markerToEdit?.setDraggable(true);
-      this.markerToEdit.setPosition(this.previousPositionMarker);
-      // this.markerToEdit.setMap(null);
-      // this.markerToEdit.setMap(this.map);
+      this._cancelEditionOp();
     }
     Array.from(containerWorkouts.children).forEach((w) => {
       w.classList.remove("selected");
@@ -296,7 +300,7 @@ const App = {
     const duration = +form.duration.value;
     const type = inputType.value;
     let isValidForm = false;
-    let isValidLocation = false;
+
 
     // NEW WORKOUT
 
@@ -318,14 +322,12 @@ const App = {
         this._renderWorkoutList(this.workoutToEdit);
       } else {
         workout.initialize(disntance, duration, this.positionClicked, cadence);
-        isValidLocation = await workout.reverseGeocode();
-        if (isValidLocation) this.workouts.push(workout);
-        else this._showModal();
+
       }
     }
 
     if (type === "cycling") {
-      // Check if data is valid.
+
       const elevation = +form.elevation.value;
       isValidForm =
         validInputs(disntance, duration, elevation) &&
@@ -345,20 +347,22 @@ const App = {
           this.positionClicked,
           elevation
         );
-        isValidLocation = await workout.reverseGeocode();
-        if (isValidLocation) this.workouts.push(workout);
-        else this._showModal();
+
+
       }
     }
 
-    if (!this.isEdition && isValidLocation) {
+    if (!this.isEdition) {
       this.renderMarker(workout);
       this._renderWorkoutList(workout);
+
+      await workout.reverseGeocode();
+      this.workouts.push(workout);
     }
 
     if (this.isEdition) {
       this.markerToEdit.setAnimation(null);
-      this.markerToEdit.setDraggable(true);
+      this.markerToEdit.setDraggable(false);
       this.isEdition = false;
     }
 
@@ -424,12 +428,20 @@ const App = {
     workoutEl.remove();
     parentWorkout.insertAdjacentHTML("afterend", html);
   },
-  _showForm(e) {
-    noWorkoutsP.classList.add("hidden");
-    this.infowindow?.close()
+  async _showForm(e) {
+    if (this.isEdition) return;
     this.marker && this.marker.setMap(null);
+    this.infowindow?.close();
     const { lat, lng } = e.latLng;
 
+    const isValidLocation = await workoutProto.reverseGeocode(lat(), lng());
+
+    if (!isValidLocation) {
+      this._showModal();
+      form.classList.add("hidden");
+      return
+    }
+    noWorkoutsP.classList.add("hidden");
     this.marker = new google.maps.Marker({
       position: { lat: lat(), lng: lng() }, // Cambia las coordenadas
     });
@@ -445,10 +457,7 @@ const App = {
   _editWorkout(e) {
     if (!e.target.closest(".workout")) return;
     if (this.isEdition) {
-      this.markerToEdit.setAnimation(null);
-      this.markerToEdit.setDraggable(false);
-      this.markerToEdit = null;
-      this.workoutToEdit = null;
+      this._cancelEditionOp();
     }
     this.isEdition = true;
     const workoutEl = e.target.closest(".workout");
@@ -576,7 +585,7 @@ const workoutProto = {
 
       return true
     } catch (e) {
-      console.log(e.message);
+      //console.log(e);
       return false
       // TODO: notify error
     }
