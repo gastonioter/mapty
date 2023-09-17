@@ -17,6 +17,7 @@ const viewAllMarksBtn = document.querySelector(".control.showAll");
 const btnForm = document.querySelector(".form__btn");
 const goToCurrentLocationBtn = document.querySelector(".control.current");
 const noWorkoutsP = document.querySelector(".workouts p");
+const modal = document.querySelector(".alert-outer");
 
 const App = {
   map: null,
@@ -33,6 +34,7 @@ const App = {
   markerToEdit: null,
   previousPositionMarker: null,
   init() {
+    modal.addEventListener("click", this._handleClickOutside.bind(this));
     window.addEventListener("keyup", this._cancelWorkout.bind(this));
     form.addEventListener("submit", this._newWorkout.bind(this));
     inputType.addEventListener("change", this._toggleElevationField);
@@ -44,6 +46,26 @@ const App = {
     );
     this._loadFromLocalStorage();
     this._getPosition();
+  },
+
+  _handleClickOutside(e) {
+
+    const isOutside = !e.target.closest(".alert-inner");
+    if (isOutside) {
+      this._closeModal();
+      return
+    }
+    if (e.target.classList.contains('btn')) {
+      this._closeModal();
+      return
+    }
+  },
+
+  _showModal() {
+    modal.classList.remove("hidden");
+  },
+  _closeModal() {
+    modal.classList.add("hidden");
   },
 
   panToCurrentLocation() {
@@ -298,6 +320,7 @@ const App = {
         workout.initialize(disntance, duration, this.positionClicked, cadence);
         isValidLocation = await workout.reverseGeocode();
         if (isValidLocation) this.workouts.push(workout);
+        else this._showModal();
       }
     }
 
@@ -324,6 +347,7 @@ const App = {
         );
         isValidLocation = await workout.reverseGeocode();
         if (isValidLocation) this.workouts.push(workout);
+        else this._showModal();
       }
     }
 
@@ -540,7 +564,9 @@ const workoutProto = {
       const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.GOOGLE_MAPS_API_KEY}&result_type=country|administrative_area_level_1|administrative_area_level_2|locality|sublocality`);
       const data = await res.json();
       let fullLocation = data.plus_code.compound_code;
-      if (!fullLocation) throw new Error("We couldn't find a valid location")
+      if (!fullLocation) {
+        throw new Error("We couldn't find a valid location")
+      }
       const [town, province, country] = fullLocation.split(',');
       this.location = {
         country,
@@ -557,7 +583,7 @@ const workoutProto = {
   },
 
   getStringLocation() {
-    return `${this.location.town.split(' ').slice(1).join(' ')},${this.location.province || ''}${this.location.country ? ', '+this.location.country : ''}`
+    return `${this.location.town.split(' ').slice(1).join(' ')},${this.location.province || ''}${this.location.country ? ', ' + this.location.country : ''}`
   }
 };
 
